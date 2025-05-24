@@ -87,7 +87,7 @@ $base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
                   <td>
                     <input type="number"
                           name="product[<?php echo $product['id']; ?>][quantity]"
-                          value="<?php echo $_SESSION['cart'][$product['id']]; ?>"
+                          value="<?php echo $_SESSION['cart'][$product['id']] ?? 0 ?>"
                           class="form-control">
                   </td>
 

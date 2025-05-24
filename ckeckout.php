@@ -2,13 +2,11 @@
 session_start();
 require 'config.php';
 
-
-
 $userid = $_SESSION['userid'] ?? 0;
 $fullname = $_SESSION['username'] ?? 'Guest';
 $order_date = date('Y-m-d H:i:s');
 
-// ดึงข้อมูลจากตาราง users
+// ดึงข้อมูลผู้ใช้
 $sql = "SELECT email, tel FROM users WHERE userid = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userid);
@@ -19,19 +17,25 @@ $user = $result->fetch_assoc();
 $email = $user['email'] ?? '';
 $tel = $user['tel'] ?? '';
 
+// ✅ คำนวณยอดรวม
+$grand_total = 0;
+foreach ($_SESSION['cart'] as $item) {
+    if (is_array($item)) {
+        $grand_total += $item['price'] * $item['quantity'];
+    }
+}
 
+// ✅ บันทึกคำสั่งซื้อ
 $sql = "INSERT INTO orders (userid, order_date, tel, fullname, email, grand_total) VALUES (?, ?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql);
-
 if (!$stmt) {
     die("SQL Prepare Error: " . $conn->error);
 }
-
 $stmt->bind_param("issssd", $userid, $order_date, $tel, $fullname, $email, $grand_total);
 $stmt->execute();
 $order_id = $stmt->insert_id;
 
-// เก็บ order_details
+// ✅ บันทึกรายละเอียดสินค้า
 foreach ($_SESSION['cart'] as $item) {
     if (is_array($item)) {
         $sql = "INSERT INTO order_details (order_id, product_id, product_name, price, quantity) VALUES (?, ?, ?, ?, ?)";
