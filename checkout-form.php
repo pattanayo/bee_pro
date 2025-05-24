@@ -9,16 +9,16 @@ if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
 $now = date('Y-m-d H:i:s');
 
 // ดึงข้อมูลผู้ใช้จาก session
-$user_id = $_SESSION['user_id'] ?? null;
+$user_id = $_SESSION['userid'] ?? null;
 if ($user_id) {
-    $user_query = mysqli_query($conn, "SELECT * FROM users WHERE id = '{$user_id}'");
+    $user_query = mysqli_query($conn, "SELECT * FROM users WHERE userid = '{$userid}'");
     $user = mysqli_fetch_assoc($user_query);
-    $fullname = $user['first_name'] . ' ' . $user['last_name'];
+    $fullname = $user['username'] ;
     $email = $user['email'];
     $tel = $user['tel']; // สมมุติว่ามีในตาราง
 } else {
     // fallback ถ้าไม่ได้ล็อกอิน
-    $fullname = mysqli_real_escape_string($conn, $_POST['fullname']);
+    $fullname = mysqli_real_escape_string($conn, $_POST['username']);
     $email = mysqli_real_escape_string($conn, $_POST['email']);
     $tel = mysqli_real_escape_string($conn, $_POST['tel']);
 }
@@ -62,8 +62,8 @@ if ($query) {
     // ล้างตะกร้า
     unset($_SESSION['cart']);
 
-    // ส่งผู้ใช้ไปหน้าสำเร็จ
-    header("Location: order-success.php");
+
+    
     exit();
 }
 ?>

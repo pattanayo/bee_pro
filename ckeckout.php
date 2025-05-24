@@ -1,47 +1,55 @@
-<?php 
+<?php
 session_start();
-include 'config.php';
+require 'config.php';
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
-// ตรวจสอบว่าเข้าสู่ระบบหรือยัง
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
+
+$userid = $_SESSION['userid'] ?? 0;
+$fullname = $_SESSION['username'] ?? 'Guest';
+$order_date = date('Y-m-d H:i:s');
+
+// ดึงข้อมูลจากตาราง users
+$sql = "SELECT email, tel FROM users WHERE userid = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $userid);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+
+$email = $user['email'] ?? '';
+$tel = $user['tel'] ?? '';
+
+
+$sql = "INSERT INTO orders (userid, order_date, tel, fullname, email, grand_total) VALUES (?, ?, ?, ?, ?, ?)";
+$stmt = $conn->prepare($sql);
+
+if (!$stmt) {
+    die("SQL Prepare Error: " . $conn->error);
 }
 
-// ดึงข้อมูลผู้ใช้
-$user_id = $_SESSION['user_id'];
-$user_query = mysqli_query($conn, "SELECT * FROM users WHERE id = $user_id");
-$user = mysqli_fetch_assoc($user_query);
+$stmt->bind_param("issssd", $userid, $order_date, $tel, $fullname, $email, $grand_total);
+$stmt->execute();
+$order_id = $stmt->insert_id;
 
-// ประกอบชื่อเต็ม
-$fullname = $user['first_name'] . ' ' . $user['last_name'];
-$email = $user['email'];
-$tel = $user['tel'] ?? ''; // เผื่อไม่มีในตาราง
-
-// เตรียมตะกร้าสินค้า
-$total = 0;
-$cart_items = [];
-
-if (!empty($_SESSION['cart'])) {
-    $productIds = implode(",", array_keys($_SESSION['cart']));
-    $result = mysqli_query($conn, "SELECT * FROM products WHERE id IN ($productIds)");
-    while ($row = mysqli_fetch_assoc($result)) {
-        $qty = $_SESSION['cart'][$row['id']];
-        $subtotal = $row['price'] * $qty;
-        $total += $subtotal;
-
-        $cart_items[] = [
-            'id' => $row['id'],
-            'name' => $row['product_name'],
-            'price' => $row['price'],
-            'qty' => $qty
-        ];
+// เก็บ order_details
+foreach ($_SESSION['cart'] as $item) {
+    if (is_array($item)) {
+        $sql = "INSERT INTO order_details (order_id, product_id, product_name, price, quantity) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            die("SQL Prepare Error (details): " . $conn->error);
+        }
+        $stmt->bind_param("iisdi", $order_id, $item['id'], $item['name'], $item['price'], $item['quantity']);
+        $stmt->execute();
     }
 }
+
+unset($_SESSION['cart']);
+echo "✅ สั่งซื้อเรียบร้อยแล้ว";
+
+
 ?>
+
 
 <!-- HTML ด้านล่าง -->
 <form action="checkout-save.php" method="post">
@@ -59,10 +67,9 @@ if (!empty($_SESSION['cart'])) {
     <label>Email</label>
     <input type="text" class="form-control" value="<?php echo htmlspecialchars($email); ?>" readonly>
   </div>
-  <div class="mb-3">
-    <label>Phone</label>
-    <input type="text" class="form-control" value="<?php echo htmlspecialchars($tel); ?>" readonly>
-  </div>
+  <label for="tel">เบอร์โทร</label>
+<input type="text" name="tel" class="form-control" required>
+
 
   <!-- ที่อยู่ยังให้กรอกได้ -->
   <div class="mb-3">
