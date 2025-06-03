@@ -71,6 +71,7 @@ $base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
 
   <div class="container" style="margin-top: 30px">
     <h4 class="card-title mb-5">Home - Manage Product</h4>
+    
 
     <div class="card shadow mb-4">
       <div class="card-body">
