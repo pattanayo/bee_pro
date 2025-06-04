@@ -5,45 +5,48 @@ include 'config.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+$base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
+
 // ดึงข้อมูลสินค้า
 $query = mysqli_query($conn, 'SELECT * FROM products');
 $rows = mysqli_num_rows($query);
 
-// กำหนดค่าเริ่มต้นสำหรับแบบฟอร์มแก้ไข
+// กำหนดค่าเริ่มต้น
 $result = [
   'id' => '',
   'product_name' => '',
   'price' => '',
   'detail' => '',
   'image' => '',
-  'category_id' => ''
+  'category_id' => '',
+  'group_id' => ''
 ];
 
-// ดึงข้อมูลหมวดหมู่
+// ดึงข้อมูลหมวดหมู่และกลุ่ม
+$category_groups_query = mysqli_query($conn, "SELECT * FROM category_groups") or die(mysqli_error($conn));
 $categories_query = mysqli_query($conn, "SELECT * FROM categories") or die(mysqli_error($conn));
-$debug_categories = mysqli_fetch_all($categories_query, MYSQLI_ASSOC);
 
-// ดึงอีกครั้งสำหรับแสดงใน select
-$categories = mysqli_query($conn, "SELECT * FROM categories") or die(mysqli_error($conn));
+// เตรียม categories by group
+$categories_by_group = [];
+while ($cat = mysqli_fetch_assoc($categories_query)) {
+  $categories_by_group[$cat['group_id']][] = [
+    'category_id' => $cat['category_id'],
+    'name' => $cat['name']
+  ];
+}
 
-$category_id = $_POST['category_id'] ?? '';
 $id = $_GET['id'] ?? '';
-
 if (!empty($id)) {
-  $id = mysqli_real_escape_string($conn, $id); // ป้องกัน SQL Injection
-  $query_product = mysqli_query($conn, "SELECT * FROM products WHERE id = '$id'");
-
+  $id = mysqli_real_escape_string($conn, $id);
+  $query_product = mysqli_query($conn, "SELECT p.*, c.group_id FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.id = '$id'");
   if (mysqli_num_rows($query_product) === 0) {
     header("Location: $base_url/index.php");
     exit;
   }
-
   $result = mysqli_fetch_assoc($query_product);
 }
 ?>
-<?php
-$base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
-?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -75,70 +78,65 @@ $base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
 
     <div class="card shadow mb-4">
       <div class="card-body">
-        <form action="<?php echo $base_url; ?>/product-from.php" method="post" enctype="multipart/form-data">
-          <input type="hidden" name="id" value="<?php echo $result['id']; ?>">
+<form action="<?php echo $base_url; ?>/product-from.php" method="post" enctype="multipart/form-data">
+  <input type="hidden" name="id" value="<?php echo $result['id']; ?>">
 
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <label class="form-label">Product name</label>
-              <input type="text" name="product_name" class="form-control" value="<?php echo $result['product_name']; ?>">
-            </div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <label class="form-label">Product name</label>
+      <input type="text" name="product_name" class="form-control" value="<?php echo htmlspecialchars($result['product_name']); ?>">
+    </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Price</label>
-              <input type="text" name="price" class="form-control" value="<?php echo $result['price']; ?>">
-            </div>
+    <div class="col-md-6">
+      <label class="form-label">Price</label>
+      <input type="text" name="price" class="form-control" value="<?php echo htmlspecialchars($result['price']); ?>">
+    </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Image</label>
-              <?php if (!empty($result['image'])): ?>
-                <div class="mb-2">
-                  <img src="<?php echo $base_url; ?>/upload_image/<?php echo htmlspecialchars($result['image']); ?>" width="120" alt="Current Image">
-                </div>
-              <?php endif; ?>
-              <input type="file" name="image" class="form-control" accept="image/png, image/jpg, image/jpeg">
-            </div>
+    <div class="col-md-6">
+      <label class="form-label">Image</label>
+      <?php if (!empty($result['image'])): ?>
+        <div class="mb-2">
+          <img src="<?php echo $base_url; ?>/upload_image/<?php echo htmlspecialchars($result['image']); ?>" width="120">
+        </div>
+      <?php endif; ?>
+      <input type="file" name="image" class="form-control" accept="image/png, image/jpg, image/jpeg">
+    </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Category</label>
-              <select name="category_id" class="form-select" id="categorySelect" onchange="toggleNewCategoryInput(this)">
-                <option value="">-- เลือกหมวดหมู่ --</option>
-                <?php while ($cat = mysqli_fetch_assoc($categories)): ?>
-                  <?php 
-                    if (!isset($cat['category_id'], $cat['name'])) continue; 
-                    $selected = ($cat['category_id'] == $result['category_id']) ? 'selected' : '';
-                  ?>
-                  <option value="<?php echo $cat['category_id']; ?>" <?php echo $selected; ?>>
-                    <?php echo htmlspecialchars($cat['name']); ?>
-                  </option>
-                <?php endwhile; ?>
-                <option value="__new__">+ เพิ่มหมวดหมู่ใหม่...</option>
-              </select>
+    <div class="col-md-6">
+      <label class="form-label">กลุ่มสินค้า</label>
+      <select name="group_id" class="form-select" id="groupSelect" onchange="loadCategories()">
+        <option value="">-- เลือกกลุ่ม --</option>
+        <?php mysqli_data_seek($category_groups_query, 0); while ($group = mysqli_fetch_assoc($category_groups_query)): ?>
+          <option value="<?= $group['group_id']; ?>" <?= ($group['group_id'] == $result['group_id']) ? 'selected' : '' ?>>
+            <?= htmlspecialchars($group['group_name']); ?>
+          </option>
+        <?php endwhile; ?>
+      </select>
+    </div>
 
-              <div id="newCategoryWrapper" class="mt-2" style="display:none;">
-                <label class="form-label">ชื่อหมวดหมู่ใหม่:</label>
-                <div class="input-group">
-                  <input type="text" name="new_category" id="newCategoryInput" class="form-control">
-                  
-                </div>
-              </div>
-            </div>
+    <div class="col-md-6">
+      <label class="form-label">หมวดหมู่</label>
+      <select name="category_id" class="form-select" id="categorySelect">
+        <option value="">-- เลือกหมวดหมู่ --</option>
+        <!-- จะเติมผ่าน JS -->
+      </select>
+    </div>
 
-            <div class="col-md-12">
-              <label class="form-label">Detail</label>
-              <textarea name="detail" class="form-control" rows="3"><?php echo htmlspecialchars($result['detail']); ?></textarea>
-            </div>
-          </div>
+    <div class="col-md-12">
+      <label class="form-label">Detail</label>
+      <textarea name="detail" class="form-control" rows="3"><?php echo htmlspecialchars($result['detail']); ?></textarea>
+    </div>
+  </div>
 
-          <button class="btn btn-primary" type="submit">
-            <i class="fa-regular fa-floppy-disk me-1"></i>
-            <?php echo empty($result['id']) ? 'Create' : 'Update'; ?>
-          </button>
+  <button class="btn btn-primary" type="submit">
+    <i class="fa-regular fa-floppy-disk me-1"></i>
+    <?php echo empty($result['id']) ? 'Create' : 'Update'; ?>
+  </button>
+  <a class="btn btn-secondary" href="<?php echo $base_url; ?>/index.php">
+    <i class="fa-solid fa-rotate-left me-1"></i> Cancel
+  </a>
+</form>
 
-          <a class="btn btn-secondary" href="<?php echo $base_url . '/index.php'; ?>">
-            <i class="fa-solid fa-rotate-left me-1"></i> Cancel
-          </a>
-        </form>
       </div>
     </div>
 
@@ -201,6 +199,30 @@ $base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
       const wrapper = document.getElementById('newCategoryWrapper');
       wrapper.style.display = (select.value === '__new__') ? 'block' : 'none';
     }
+
+    const categoriesByGroup = <?php echo json_encode($categories_by_group); ?>;
+  const selectedCategoryId = "<?php echo $result['category_id']; ?>";
+
+  function loadCategories() {
+    const groupId = document.getElementById('groupSelect').value;
+    const categorySelect = document.getElementById('categorySelect');
+
+    categorySelect.innerHTML = '<option value="">-- เลือกหมวดหมู่ --</option>';
+
+    if (categoriesByGroup[groupId]) {
+      categoriesByGroup[groupId].forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.category_id;
+        option.text = cat.name;
+        if (cat.category_id == selectedCategoryId) {
+          option.selected = true;
+        }
+        categorySelect.appendChild(option);
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadCategories);
   </script>
 
 </body>

@@ -5,18 +5,55 @@ include 'config.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// ดึงข้อมูลสินค้า
+
+
+
+
+$category_id = $_GET['category_id'] ?? null;
 $search = $_GET['search'] ?? '';
-if (!empty($search)) {
-    $stmt = $conn->prepare("SELECT * FROM products WHERE product_name LIKE ?");
-    $search_param = "%" . $search . "%";
-    $stmt->bind_param("s", $search_param);
-    $stmt->execute();
-    $query = $stmt->get_result();
-} else {
-    $query = mysqli_query($conn, "SELECT * FROM products");
+
+$sql = "SELECT * FROM products";
+$params = [];
+$types = [];
+$conditions = [];
+
+if (!empty($category_id)) {
+    $conditions[] = "category_id = ?";
+    $types[] = "i";
+    $params[] = $category_id;
 }
-$rows = mysqli_num_rows($query);
+
+if (!empty($search)) {
+    $conditions[] = "product_name LIKE ?";
+    $types[] = "s";
+    $params[] = "%" . $search . "%";
+}
+
+if (count($conditions) > 0) {
+    $sql .= " WHERE " . implode(" AND ", $conditions);
+}
+
+// Prepare statement
+$stmt = $conn->prepare($sql);
+
+if (!$stmt) {
+    die("SQL Prepare Failed: " . $conn->error);
+}
+
+if (count($params) > 0) {
+    // bind_param ต้องใช้ reference, ดังนั้นต้องใช้ ... และ call_user_func_array
+    $bind_names[] = implode('', $types);
+    for ($i=0; $i<count($params); $i++) {
+        $bind_name = 'bind' . $i;
+        $$bind_name = $params[$i];
+        $bind_names[] = &$$bind_name;
+    }
+    call_user_func_array([$stmt, 'bind_param'], $bind_names);
+}
+
+$stmt->execute();
+$query = $stmt->get_result();
+$rows = $query->num_rows;
 
 
 
