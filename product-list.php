@@ -6,9 +6,6 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 
-
-
-
 $category_id = $_GET['category_id'] ?? null;
 $search = $_GET['search'] ?? '';
 
@@ -57,7 +54,7 @@ $rows = $query->num_rows;
 
 
 
-$base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
+
 ?>
 
 <!DOCTYPE html>

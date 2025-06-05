@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 include 'config.php';
-$base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
+
 
 $sql = "
     SELECT c.category_id, c.name AS category_name, g.group_id, g.group_name
@@ -26,17 +26,15 @@ while ($row = $result->fetch_assoc()) {
 <header class="d-flex justify-content-between align-items-center py-3 border-bottom bg-light shadow-sm px-3">
   <ul class="nav nav-pills">
                 <style>
-            /* Submenu dropdown */
-            .dropdown-submenu {
-            position: relative;
-            }
+                  .dropdown-submenu {
+                  position: relative;
+                }
 
-            .dropdown-submenu .dropdown-menu {
-            top: 0;
-            left: 100%;
-            margin-left: .1rem;
-            margin-right: .1rem;
-            }
+                .dropdown-submenu > .dropdown-menu {
+                  top: 0;
+                  left: 100%;
+                  margin-top: -1px;
+                }
             </style>
 
     <li class="nav-item"><a href="<?= $base_url; ?>/index.php" class="nav-link">Home</a></li>
