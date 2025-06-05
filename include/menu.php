@@ -3,6 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 include 'config.php';
+$base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
 
 $sql = "
     SELECT c.category_id, c.name AS category_name, g.group_id, g.group_name
@@ -18,7 +19,7 @@ while ($row = $result->fetch_assoc()) {
     $categories_by_group[$group][] = $row;
 }
 
-$base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
+
 ?>
 
 
