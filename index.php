@@ -12,7 +12,14 @@ include 'config.php'; // config อาจจะมีการใช้ $base_ur
 
 
 
-$sql = "SELECT * FROM products";
+$search = $_GET['search'] ?? '';
+if (!empty($search)) {
+  $search_safe = mysqli_real_escape_string($conn, $search);
+  $sql = "SELECT * FROM products WHERE product_name LIKE '%$search_safe%'";
+} else {
+  $sql = "SELECT * FROM products";
+}
+
 
 // ใช้ $sql ใน query
 $query = mysqli_query($conn, $sql);
@@ -90,6 +97,14 @@ if (!empty($id)) {
 
       <div class="container" style="margin-top: 30px">
         <h4 class="card-title mb-5">Home - Manage Product</h4>
+
+        <form method="GET" class="mb-4">
+      <div class="input-group">
+        <input type="text" name="search" class="form-control" placeholder="ค้นหาชื่อสินค้า..." value="<?php echo $_GET['search'] ?? ''; ?>">
+        <button class="btn btn-outline-primary" type="submit">ค้นหา</button>
+      </div>
+    </form>
+
 
         <div class="card shadow mb-4">
           <div class="card-body">
