@@ -1,6 +1,7 @@
 <?php 
 session_start();
 include 'config.php';
+  require_once "include/menu.php"; 
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -42,7 +43,7 @@ $base_url = "http://" . $_SERVER['HTTP_HOST'] . "/bee_pro";
 </head>
 <body class="bg-body-tertiary">
 
-  <?php require_once "include/menu.php"; ?>
+ 
 
   <?php if (!empty($_SESSION['message'])): ?>
     <div class="alert alert-warning alert-dismissible fade show" role="alert">

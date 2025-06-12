@@ -15,7 +15,7 @@ $sql = "
 $result = $conn->query($sql);
 $categories_by_group = [];
 while ($row = $result->fetch_assoc()) {
-    $group = $row['group_name'] ?? 'ไม่ระบุกลุ่ม';
+  $group = $row['group_name'] ? trim($row['group_name']) : 'ไม่ระบุกลุ่ม';
     $categories_by_group[$group][] = $row;
 }
 

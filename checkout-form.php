@@ -11,11 +11,11 @@ $now = date('Y-m-d H:i:s');
 // ดึงข้อมูลผู้ใช้จาก session
 $user_id = $_SESSION['userid'] ?? null;
 if ($user_id) {
-    $user_query = mysqli_query($conn, "SELECT * FROM users WHERE userid = '{$userid}'");
+    $user_query = mysqli_query($conn, "SELECT * FROM users WHERE userid = '{$user_id}'");
     $user = mysqli_fetch_assoc($user_query);
-    $fullname = $user['username'] ;
+    $fullname = $user['username'];
     $email = $user['email'];
-    $tel = $user['tel']; // สมมุติว่ามีในตาราง
+    $tel = $user['tel'];
 } else {
     // fallback ถ้าไม่ได้ล็อกอิน
     $fullname = mysqli_real_escape_string($conn, $_POST['username']);
@@ -62,8 +62,6 @@ if ($query) {
     // ล้างตะกร้า
     unset($_SESSION['cart']);
 
-
-    
     exit();
 }
 ?>
